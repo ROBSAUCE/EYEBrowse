@@ -1,0 +1,19 @@
+# Build artifacts
+eyebrowse
+icon.icns
+EyeBrowse.app/
+EyeBrowse.iconset/
+
+# macOS
+.DS_Store
+*.dylib
+
+# Go
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,6 @@
+[Details]
+  Icon = "eyebrowse.png"
+  Name = "EyeBrowse"
+  ID = "com.eyebrowse.smbexplorer"
+  Version = "1.0.0"
+  Build = 6

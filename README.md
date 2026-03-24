@@ -106,8 +106,4 @@ Makefile             Build targets (dev, build, run, clean)
 ## Disclaimer
 
 For authorized penetration testing and red team engagements only. Obtain proper written authorization before use.
-# EYEBrowse
-# EYEBrowse
-# EYEBrowse
-# EYEBrowse
-# EYEBrowse
+

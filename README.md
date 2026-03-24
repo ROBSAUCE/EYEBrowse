@@ -1,6 +1,9 @@
 <p align="center">
   <img src="eyebrowse.png" alt="EyeBrowse Logo" width="200"/>
 </p>
+<p align="center">
+  <img src="EyeBrowseGUI.png" alt="EyeBrowse Logo" width="200"/>
+</p>
 
 <h1 align="center">EyeBrowse</h1>
 

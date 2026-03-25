@@ -1,112 +1,92 @@
-<p align="center">
-  <img src="eyebrowse.png" alt="EyeBrowse Logo" width="250"/>
-</p>
-<p align="center">
-  <img src="EyeBrowseGUI.png" alt="EyeBrowse Preview" width="900"/>
-</p>
+# EyeBrowse Go v1 — SMB File Explorer
 
-<h1 align="center">EyeBrowse</h1>
+A cross-platform GUI tool for pen testers to browse, download, upload, and preview files on SMB shares using NTLM pass-the-hash or Kerberos ticket authentication. Written in Go with no IOC-flagged libraries. Single binary, no external dependencies at runtime.
 
-<p align="center">
-  <strong>SMB File Explorer with Pass-the-Hash Authentication</strong><br>
-  Browse, download, upload, preview, and scan files on SMB shares using NTLM hashes.
-</p>
+## Features
 
----
+### Authentication
+- **NTLM Pass-the-Hash** — Connect with only the NT hash (LM:NT or NT-only format)
+- **Kerberos (CCache / Kirbi)** — Load `.ccache` or `.kirbi` ticket files directly
+- **TGT & TGS Support** — Use a Ticket Granting Ticket (TGT) for any service, or a pre-existing Service Ticket (TGS) for direct auth without KDC contact
+- **Base64 Kirbi Paste** — Paste a base64-encoded `.kirbi` ticket inline (e.g. from Rubeus output)
+- **Ticket Validation** — Detects expired tickets, zero-key tgtdeleg tickets, and shows parsed ticket details before connecting
 
-## Quick Start
+### Network
+- **SOCKS4 & SOCKS5 Proxy** — Toggle-able proxy with enable/disable checkbox; routes SMB and KDC traffic through the tunnel
+- **Custom DNS over TCP** — Resolve hostnames through a specified DNS server, tunneled through SOCKS when configured
+- **KDC Proxy Tunneling** — Automatically forwards Kerberos KDC traffic through SOCKS via a local TCP proxy
+- **KDC Host Override** — Optionally specify the KDC hostname/IP when it differs from the target
 
-### macOS
+### File Browser
+- **GUI File Browser** — Browse shares, navigate directories, sort by name/type/size/date
+- **File Operations** — Download files/folders, upload files, preview text and images
+- **Office Preview** — Basic preview support for common Office file formats
+- **Pattern Analysis** — Highlights files matching common sensitive data patterns (credentials, configs, keys)
+- **Visited Tracking** — Highlights previously visited directories and files
+- **Favorites** — Save and manage frequently accessed locations (NTLM sessions)
+- **Tags** — Tag files/folders and export tagged items to clipboard or file
+
+### General
+- **Terminal Log** — Real-time operation log with timestamps and debug output
+- **Single Binary** — Logo embedded, no external files needed after build
+- **Encrypted Credential Storage** — NTLM hashes stored encrypted (AES-256-GCM) in preferences
+- **Dark Theme** — Custom dark theme matching the original Python EyeBrowse branding
+
+## Libraries Used (No IOCs)
+
+| Library | Purpose |
+|---------|---------|
+| `fyne.io/fyne/v2` | Cross-platform GUI framework |
+| `github.com/cloudsoda/go-smb2` | Pure-Go SMB2/3 client with Kerberos support |
+| `github.com/jcmturner/gokrb5/v8` | Pure-Go Kerberos 5 library (ccache, TGT/TGS) |
+| `golang.org/x/net/proxy` | SOCKS5 proxy dialer |
+
+None of these libraries are flagged as IOCs by EDR/AV solutions.
+
+## Build
 
 ```bash
-xcode-select --install          # one-time: install Xcode CLI tools
-git clone https://github.com/YOUR_USERNAME/EyeBrowse.git
-cd EyeBrowse
+# Requires Go 1.21+
+go mod tidy
 go build -o eyebrowse .
-./eyebrowse
 ```
 
-To build a native `.app` bundle with dock icon:
+### macOS App Bundle
 
 ```bash
-make build
-open EyeBrowse.app
+make build   # builds binary + .app bundle with icon
+make run     # builds and opens the .app
+make clean   # removes build artifacts
 ```
 
-### Linux (Kali / Debian / Ubuntu)
+## Run
 
 ```bash
-# Install system dependencies (one-time)
-sudo apt update
-sudo apt install -y golang gcc libgl1-mesa-dev xorg-dev \
-    libxcursor-dev libxrandr-dev libxinerama-dev \
-    libxi-dev libxxf86vm-dev
-
-# Clone and build
-git clone https://github.com/YOUR_USERNAME/EyeBrowse.git
-cd EyeBrowse
-go build eyebrowse .
 ./eyebrowse
 ```
-
-> If your distro's `golang` package is older than 1.24, install Go manually from https://go.dev/dl/
-
-> On GCC 15 (aarch64), you may see a `.sframe` linker warning — this is cosmetic and the binary still works.
-
----
-
-## What is EyeBrowse?
-
-EyeBrowse is a GUI tool for penetration testers and red teamers. It connects to SMB/CIFS shares using **NTLM pass-the-hash** authentication — no plaintext passwords needed. Built in Go with the [Fyne](https://fyne.io/) framework, it compiles to a single binary with the logo embedded.
-
-### Key Capabilities
-
-- **Pass-the-Hash** — Authenticate with NTLM hashes (`LM:NT` or `NT` format)
-- **SOCKS4/5 Proxy** — Route through SOCKS proxies for pivoting
-- **File Browser** — Navigate shares, download/upload files, preview text/images/Office docs (PDF, DOCX, XLSX, PPTX)
-- **Secret Scanning** — Scan files or entire folders for sensitive data: passwords, SSNs, credit cards, API keys, SSH keys, NTLM hashes, connection strings, and 30+ other patterns
-- **Heuristic Password Detection** — Identifies likely passwords (e.g. `Micr0@dmin1`, `P@ssw0rd`, `Welcome1!`) using structural analysis — no dictionary required
-- **Favorites & Tags** — Save paths with encrypted credentials, tag files for reporting, export to clipboard or file
-- **Encrypted Credentials** — Saved hashes are AES-256-GCM encrypted at rest
-
-### NTLM Hash Formats
-
-```
-aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0   # LM:NT
-31d6cfe0d16ae931b73c59d7e0c089c0                                     # NT only
-```
-
----
 
 ## Usage
 
-1. **Connect** — Enter domain, username, NTLM hash, and target IP
-2. **Browse** — Select a share, double-click folders, use breadcrumbs to navigate
-3. **Right-click** any file/folder for: Preview, Download, Upload, Copy UNC Path, Tag, Scan, Add to Favorites
-4. **Scan Secrets** — Preview a file then click Scan Secrets, or right-click a folder to scan recursively
-5. **Proxy** — Configure SOCKS proxy under Settings if needed
+### NTLM (Pass-the-Hash)
+1. **Configure Proxy (optional):** Settings → SOCKS Proxy → enable checkbox, set type/host/port
+2. **Connect:** Click "Connect" → select "NTLM (Pass-the-Hash)" → enter Domain, Username, NTLM Hash, Target
+3. **Browse:** Select a share from the left panel, double-click folders to navigate
 
----
+### Kerberos (CCache / Kirbi)
+1. **Connect:** Click "Connect" → select "Kerberos (CCache / Kirbi)"
+2. **Load ticket:** Browse for a `.ccache` or `.kirbi` file, **OR** paste a base64 kirbi and click "Parse Ticket"
+3. **KDC Host (optional):** If the KDC differs from the target, enter it in the KDC Host field
+4. **Enter target** and click Connect
 
-## Project Structure
+### Hash Format
 
-```
-main.go              Entry point, embeds logo
-explorer.go          UI controller: file table, shares, favorites, tags, preview
-smb.go               SMB2/3 client (connect, list, download, upload)
-dialogs.go           Auth and proxy dialogs
-patterns.go          Sensitive data scanner + heuristic password scoring
-patterns_test.go     Password detection test suite
-office.go            Text extraction from PDF, DOCX, XLSX, PPTX
-crypto.go            AES-256-GCM credential encryption
-theme.go             Custom dark theme
-native_dialogs.go    macOS native file dialogs (osascript)
-Makefile             Build targets (dev, build, run, clean)
-```
+- Full format: `aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0`
+- NT-only format: `31d6cfe0d16ae931b73c59d7e0c089c0`
 
----
+## Color Scheme
 
-## Disclaimer
-
-For authorized penetration testing and red team engagements only. Obtain proper written authorization before use.
-
+Matches the original Python EyeBrowse:
+- Dark theme background
+- Terminal: `#101010` background, `#c3e88d` green text
+- Visited folders: `#1565c0` dark blue highlight
+- Same EyeBrowse logo/branding

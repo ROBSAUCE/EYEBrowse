@@ -17,3 +17,7 @@ EyeBrowse.iconset/
 .idea/
 *.swp
 *.swo
+*~
+
+# Temporary kirbi files
+eyebrowse-*.kirbi

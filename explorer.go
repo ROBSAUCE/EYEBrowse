@@ -628,35 +628,70 @@ func (e *Explorer) showAuthDialog() {
 }
 
 func (e *Explorer) connectSMB(auth AuthResult) {
-	proxyConf := LoadProxySettings(e.prefs)
+	// Disconnect existing session if connected
+	e.mu.Lock()
+	if e.smbClient != nil {
+		e.smbClient.Disconnect()
+		e.smbClient = nil
+	}
+	e.mu.Unlock()
 
-	client, err := NewSMBClient(
-		auth.Domain, auth.Username, auth.NTLMHash, auth.Target,
-		445, proxyConf, e.logMsg,
-	)
+	proxyConf := LoadProxySettings(e.prefs)
+	// Debug: trace proxy pref values
+	e.logMsg(fmt.Sprintf("[DEBUG] proxy_enabled=%v proxy_host=%q proxy_port=%q",
+		e.prefs.BoolWithFallback("proxy_enabled", false),
+		e.prefs.StringWithFallback("proxy_host", ""),
+		e.prefs.StringWithFallback("proxy_port", "")))
+	if proxyConf != nil {
+		e.logMsg(fmt.Sprintf("[DEBUG] ProxyConfig: type=%s host=%s port=%s dns=%s", proxyConf.Type, proxyConf.Host, proxyConf.Port, proxyConf.DNSServer))
+	} else {
+		e.logMsg("[DEBUG] ProxyConfig is nil")
+	}
+
+	var smbClient *SMBClient
+	var err error
+
+	switch auth.Mode {
+	case AuthKerberos:
+		smbClient, err = NewSMBClientKerberos(
+			auth.CcachePath, auth.Target, auth.KDCHost,
+			445, proxyConf, e.logMsg,
+		)
+	default: // AuthNTLM
+		smbClient, err = NewSMBClient(
+			auth.Domain, auth.Username, auth.NTLMHash, auth.Target,
+			445, proxyConf, e.logMsg,
+		)
+	}
 	if err != nil {
 		e.logMsg(fmt.Sprintf("[ERROR] %s", err))
 		e.showError("Connection Failed", err.Error())
 		return
 	}
 
-	if err := client.Connect(); err != nil {
+	if err := smbClient.Connect(); err != nil {
 		e.logMsg(fmt.Sprintf("[ERROR] %s", err))
 		e.showError("Connection Failed", err.Error())
 		return
 	}
 
-	shares, err := client.ListShares()
+	shares, err := smbClient.ListShares()
 	if err != nil {
 		e.logMsg(fmt.Sprintf("[ERROR] %s", err))
 		e.showError("List Shares Failed", err.Error())
-		client.Disconnect()
+		smbClient.Disconnect()
 		return
 	}
 
+	// For Kerberos, the username comes from the ccache principal
+	displayUser := auth.Username
+	if auth.Mode == AuthKerberos {
+		displayUser = smbClient.Username
+	}
+
 	e.mu.Lock()
-	e.smbClient = client
-	e.currentUser = auth.Username
+	e.smbClient = smbClient
+	e.currentUser = displayUser
 	e.currentTarget = auth.Target
 	e.currentShare = ""
 	e.currentPath = ""
@@ -666,8 +701,8 @@ func (e *Explorer) connectSMB(auth AuthResult) {
 
 	e.updateShareList(shares)
 	e.updateBreadcrumb()
-	e.logMsg(fmt.Sprintf("[INFO] Connected to %s as %s", auth.Target, auth.Username))
-	e.showInfo("Connection Successful", fmt.Sprintf("Connected to %s as %s", auth.Target, auth.Username))
+	e.logMsg(fmt.Sprintf("[INFO] Connected to %s as %s", auth.Target, displayUser))
+	e.showInfo("Connection Successful", fmt.Sprintf("Connected to %s as %s", auth.Target, displayUser))
 }
 
 func (e *Explorer) disconnect() {
@@ -1362,6 +1397,16 @@ func (e *Explorer) addFavoriteForPath(share, path string) {
 		e.showError("Not Connected", "Connect to an SMB server first.")
 		return
 	}
+
+	// Favorites currently only support NTLM credentials
+	e.mu.Lock()
+	isKerberos := e.smbClient != nil && e.smbClient.AuthMode == AuthKerberos
+	e.mu.Unlock()
+	if isKerberos {
+		e.showError("Favorites Not Supported", "Favorites are not yet supported for Kerberos sessions.")
+		return
+	}
+
 	pathBackslash := strings.ReplaceAll(path, "/", "\\")
 	unc := fmt.Sprintf("\\\\%s\\%s\\%s", e.currentTarget, share, pathBackslash)
 	// Remove trailing backslash for cleanliness

@@ -28,20 +28,7 @@ A cross-platform GUI tool for pen testers to browse, download, upload, and previ
 
 ### General
 - **Terminal Log** — Real-time operation log with timestamps and debug output
-- **Single Binary** — Logo embedded, no external files needed after build
 - **Encrypted Credential Storage** — NTLM hashes stored encrypted (AES-256-GCM) in preferences
-- **Dark Theme** — Custom dark theme matching the original Python EyeBrowse branding
-
-## Libraries Used (No IOCs)
-
-| Library | Purpose |
-|---------|---------|
-| `fyne.io/fyne/v2` | Cross-platform GUI framework |
-| `github.com/cloudsoda/go-smb2` | Pure-Go SMB2/3 client with Kerberos support |
-| `github.com/jcmturner/gokrb5/v8` | Pure-Go Kerberos 5 library (ccache, TGT/TGS) |
-| `golang.org/x/net/proxy` | SOCKS5 proxy dialer |
-
-None of these libraries are flagged as IOCs by EDR/AV solutions.
 
 ## Build
 
@@ -83,10 +70,4 @@ make clean   # removes build artifacts
 - Full format: `aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0`
 - NT-only format: `31d6cfe0d16ae931b73c59d7e0c089c0`
 
-## Color Scheme
 
-Matches the original Python EyeBrowse:
-- Dark theme background
-- Terminal: `#101010` background, `#c3e88d` green text
-- Visited folders: `#1565c0` dark blue highlight
-- Same EyeBrowse logo/branding
